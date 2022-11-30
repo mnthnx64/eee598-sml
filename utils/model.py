@@ -92,6 +92,9 @@ class LSTM(nn.Module):
         h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
         c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
 
+        # Add new dimension for the sequence
+        x = x.unsqueeze(1)
+
         # Forward propagate LSTM
         out, _ = self.lstm(x, (h0, c0))  # out: tensor of shape (batch_size, seq_length, hidden_size)
 

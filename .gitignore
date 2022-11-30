@@ -1,3 +1,7 @@
 dataset/
 __pycache__/
 .ipynb_checkpoints/
+weights/
+*.pyc
+plots/
+*.h5
