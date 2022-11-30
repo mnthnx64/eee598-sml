@@ -7,7 +7,7 @@ import numpy as np # linear algebra
 import pandas as pd # data processing
 from datetime import datetime
 import timeit
-from utils.dataloader import SPDataset
+from utils.dataloader import StockDataset
 import torch
 import tqdm
 from utils.model import LinearModel, LSTM
@@ -34,7 +34,7 @@ sequence_length = 5
 symbol = 'AAPL'
 
 # Load the data
-dataset = SPDataset(csv_path=f'dataset/splitted_s&p500/{symbol}.csv', sequence_length=sequence_length, train=True, normalize=False)
+dataset = StockDataset(csv_path=f'dataset/splitted_s&p500/{symbol}.csv', sequence_length=sequence_length, train=True, normalize=False)
 
 # Create the data loader
 train_loader = torch.utils.data.DataLoader(dataset=dataset, batch_size=256, shuffle=False)

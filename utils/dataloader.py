@@ -13,10 +13,10 @@ from sklearn.preprocessing import MinMaxScaler
 import torch
 from torch.utils.data import Dataset, DataLoader
 
-class SPDataset(Dataset):
+class StockDataset(Dataset):
     """Data loader for the S&P 500 dataset."""
 
-    def __init__(self, csv_path, sequence_length=50, train=True, normalize=False):
+    def __init__(self, csv_path, sequence_length=5, train=True, normalize=False):
         """
         Parameters
         ----------
@@ -53,22 +53,52 @@ class SPDataset(Dataset):
 
         self.features = []
 
-        for row_multiple in range(len(self.data) // 5):
-            row = row_multiple * 5
-            current_window = self.data[row:row + 5, 4]
+        for row_multiple in range(len(self.data) // self.sequence_length):
+            row = row_multiple * self.sequence_length
+            current_window = self.data[row:row + self.sequence_length, 3]
             average = np.mean(current_window, dtype=np.float64)
             standard_deviation = np.std(current_window, dtype=np.float64)
-            a1_param,_ = np.polyfit(range(5), current_window.astype('float64'), 1)
-            minute= self.data[row+5-1,6]
-            hour= self.data[row+5-1,5]
-            close= self.data[row+5-1,4]
-            self.features.append([average, standard_deviation, a1_param, minute, hour, close])
+            # Slope of the line of best fit gives the trend of the stock (Going up or down)
+            stock_trend,_ = np.polyfit(range(self.sequence_length), current_window.astype('float64'), 1)
+            minute= self.data[row+self.sequence_length-1,6]
+            hour= self.data[row+self.sequence_length-1,5]
+            close= self.data[row+self.sequence_length-1,3]
+            self.features.append([average, standard_deviation, stock_trend, minute, hour, close])
 
         self.features = np.array(self.features, dtype=np.float64)
 
-        logAVG = self.np_pseudo_log(self.features[:,0])
-        X_time = np.concatenate([self.features[:,3], self.features[:,4], self.features[:,5], self.features[:,0]],axis=1)
+        avg = self.features[:,0].reshape(-1,1)
+        standard_devs = self.features[:,1].reshape(-1,1)
+        trends = self.features[:,2].reshape(-1,1)
+        minutes = self.features[:,3].reshape(-1,1)
+        hours = self.features[:,4].reshape(-1,1)
+        close = self.features[:,5].reshape(-1,1)
 
+        log_avg = self.np_pseudo_log(self.features[:,0]).reshape(-1,1)
+        x_time = np.concatenate([minutes, hours, close, avg],axis=1)
+        proc_data = np.concatenate([log_avg, standard_devs, trends],axis=1)
+
+        lookback = 5
+
+        proc_x, proc_y = [],[]
+        for i in range(len(proc_data) - lookback):
+            proc_x.append(np.matrix(proc_data[i:i+lookback, :]))
+            proc_y.append(proc_data[i+lookback, 0])
+        proc_x = np.array(proc_x)
+        proc_y = np.array(proc_y)
+
+        X_train = np.reshape(proc_x, (proc_x.shape[0],proc_x.shape[1]*proc_x.shape[2]))
+        X_time = x_time[lookback:]
+
+        merged = np.concatenate([X_train,X_time],axis=1)
+        merged = np.array(merged,dtype=float)
+        proc_y = proc_y>0
+        proc_y = proc_y.astype(int)
+
+        # One hot encode the proc_y
+        proc_y = np.eye(2)[proc_y]
+
+        self.data = np.concatenate([merged,proc_y],axis=1)
 
         # Split the data into train and test sets
         train_size = int(len(self.data) * 0.8)
@@ -88,7 +118,19 @@ class SPDataset(Dataset):
             self.data = self.test_set
 
     def np_pseudo_log(self, data):
-        plog = []
+        """Get the pseudo log of the data.
+
+        Parameters
+        ----------
+        data : numpy array
+            Data to get the pseudo log of.
+
+        Returns
+        -------
+        numpy array
+            Pseudo log of the data.
+        """
+        plog = [0]
         for i in range(len(data)):
             if(i>0):
                 plog.append(np.log(data[i]/data[i-1])) 
@@ -98,14 +140,13 @@ class SPDataset(Dataset):
         return len(self.data) - self.sequence_length
 
     def __getitem__(self, idx):
-        """Get a sequence at a given index."""
-        # Get the sequence
-        x = self.data[idx:idx + self.sequence_length]
-        y = self.data[idx + self.sequence_length, 0]
+        """Get the item at the given index."""
+        x = self.data[idx, :-2]
+        y = self.data[idx, -2:]
 
-        # Convert the sequence to tensor
+        # Convert the data to tensors
         x = torch.from_numpy(x).float()
-        y = torch.tensor(y).float()
+        y = torch.from_numpy(y).float()
 
         return x, y
 
@@ -143,3 +184,15 @@ class SPDataset(Dataset):
         y_batch = torch.stack(y_batch)
 
         return x_batch, y_batch
+
+if __name__ == '__main__':
+    # Create the datasetsymbol = 'AAPL'
+    symbol='AAPL'
+    # Load the data
+    dataset = StockDataset(csv_path=f'dataset/splitted_s&p500/{symbol}.csv', sequence_length=5, train=True, normalize=False)
+    # Get a random batch of training data
+    x, y = dataset.get_random_batch()
+
+    # Print the shapes of the data
+    print(x.shape)
+    print(y.shape)
