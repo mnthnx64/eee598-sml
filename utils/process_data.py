@@ -17,7 +17,7 @@ import os
 
 # Path to the dataset
 path = 'dataset/data.csv'
-path_to_save = 'daataset/splitted_s&p500'
+path_to_save = 'dataset/splitted_s&p500'
 
 # Load the dataset
 dataset = pd.read_csv(path, index_col=0, header=[0, 1]).sort_index(axis=1)

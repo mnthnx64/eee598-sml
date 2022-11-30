@@ -13,7 +13,7 @@ conda env create -f environment.yml
 
 # Activate the environment
 echo "Activating environment..."
-# source activate sml598
+conda activate sml598
 
 # Run the data processing script
 echo "Processing data..."
