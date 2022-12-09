@@ -1,6 +1,6 @@
 import torch
-from dataloader import StockDataset
-from model import LSTM
+from utils.dataloader import StockDataset
+from utils.model import GradientBoostClassifier
 
 class EvaluateModel():
     def __init__(self, model, dataloader, criterion, device):
@@ -37,10 +37,13 @@ class EvaluateModel():
             outputs = self.model(prices)
             loss += self.criterion(outputs, price_pred).item()
             tp, tn, fp, fn = self.calculate_tfpn(torch.argmax(outputs, dim=1), torch.argmax(price_pred, dim=1))
-            precision += tp / (tp + fp)
-            recall += tp / (tp + fn)
-            f1 += 2 * (precision * recall) / (precision + recall)
-            accuracy += (tp + tn) / (tp + tn + fp + fn) * 100
+            try:
+                precision += tp / (tp + fp)
+                recall += tp / (tp + fn)
+                f1 += 2 * (precision * recall) / (precision + recall)
+                accuracy += (tp + tn) / (tp + tn + fp + fn) * 100
+            except ZeroDivisionError:
+                pass
 
         # Return the metrics
         metrics = {
@@ -50,7 +53,6 @@ class EvaluateModel():
             'recall': recall / len(self.dataloader),
             'f1': f1 / len(self.dataloader)
         }
-        print(metrics)
         return metrics
 
     def calculate_tfpn(self, outputs, y_label):
@@ -107,7 +109,7 @@ if __name__ == '__main__':
     sequence_length = 5
     symbol = 'AAPL'
     checkpioint = torch.load(f'weights/{symbol}.pth')
-    model = LSTM(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, output_size=output_size).to(device)
+    model = GradientBoostClassifier(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, output_size=output_size).to(device)
     model.load_state_dict(checkpioint['model_state_dict'])
     test_dataset = StockDataset(csv_path=f'dataset/splitted_s&p500/{symbol}.csv', sequence_length=sequence_length, train=False, normalize=False)
     test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=256, shuffle=False)

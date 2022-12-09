@@ -11,151 +11,11 @@ The models are:
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np
+class OldModelDNN(nn.Module):
+    """Old model for predicting the next stock price."""
 
-class LinearModel(nn.Module):
-    """Linear model for predicting the next stock price."""
-
-    def __init__(self, input_size:int, output_size:int) -> None:
-        """
-        Parameters
-        ----------
-        input_size : int
-            Size of the input.
-        output_size : int
-            Size of the output.
-
-        Returns
-        -------
-        None.
-
-        """
-        super(LinearModel, self).__init__()
-        self.linear = nn.Linear(input_size, output_size)
-
-    def forward(self, x:torch.Tensor) -> torch.Tensor:
-        """
-        Parameters
-        ----------
-        x : torch.Tensor
-            Input tensor.
-
-        Returns
-        -------
-        torch.Tensor
-            Output tensor.
-
-        """
-        x = self.linear(x)
-        return x
-
-class LSTM(nn.Module):
-    """LSTM model for predicting the next stock price."""
-
-    def __init__(self, input_size, hidden_size, output_size, num_layers=2):
-        """
-        Parameters
-        ----------
-        input_size : int
-            Size of the input.
-        hidden_size : int
-            Size of the hidden layer.
-        output_size : int
-            Size of the output.
-        num_layers : int, optional
-            Number of layers in the LSTM. The default is 2.
-
-        Returns
-        -------
-        None.
-
-        """
-        super(LSTM, self).__init__()
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
-        self.fc = nn.Linear(hidden_size, output_size)
-
-    def forward(self, x):
-        """
-        Parameters
-        ----------
-        x : torch.Tensor
-            Input tensor.
-
-        Returns
-        -------
-        torch.Tensor
-            Output tensor.
-
-        """
-        # Initialize hidden and cell states
-        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
-        c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
-
-        # Add new dimension for the sequence
-        x = x.unsqueeze(1)
-
-        # Forward propagate LSTM
-        out, _ = self.lstm(x, (h0, c0))  # out: tensor of shape (batch_size, seq_length, hidden_size)
-
-        # Decode the hidden state of the last time step
-        out = self.fc(out[:, -1, :])
-        return out
-
-class GRU(nn.Module):
-    """GRU model for predicting the next stock price."""
-
-    def __init__(self, input_size, hidden_size, output_size, num_layers=2):
-        """
-        Parameters
-        ----------
-        input_size : int
-            Size of the input.
-        hidden_size : int
-            Size of the hidden layer.
-        output_size : int
-            Size of the output.
-        num_layers : int, optional
-            Number of layers in the GRU. The default is 2.
-
-        Returns
-        -------
-        None.
-
-        """
-        super(GRU, self).__init__()
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
-        self.gru = nn.GRU(input_size, hidden_size, num_layers, batch_first=True)
-        self.fc = nn.Linear(hidden_size, output_size)
-
-    def forward(self, x):
-        """
-        Parameters
-        ----------
-        x : torch.Tensor
-            Input tensor.
-
-        Returns
-        -------
-        torch.Tensor
-            Output tensor.
-
-        """
-        # Initialize hidden state
-        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
-
-        # Forward propagate GRU
-        out, _ = self.gru(x, h0)  # out: tensor of shape (batch_size, seq_length, hidden_size)
-
-        # Decode the hidden state of the last time step
-        out = self.fc(out[:, -1, :])
-        return out
-
-class RNN(nn.Module):
-    """RNN model for predicting the next stock price."""
-
-    def __init__(self, input_size, hidden_size, output_size, num_layers=2):
+    def __init__(self, input_size, output_size):
         """
         Parameters
         ----------
@@ -173,11 +33,14 @@ class RNN(nn.Module):
         None.
 
         """
-        super(RNN, self).__init__()
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
-        self.rnn = nn.RNN(input_size, hidden_size, num_layers, batch_first=True)
-        self.fc = nn.Linear(hidden_size, output_size)
+        super(OldModelDNN, self).__init__()
+        self.fc1 = nn.Linear(input_size, int(np.floor(4*input_size/5)))
+        self.fc2 = nn.Linear(int(np.floor(4*input_size/5)), int(np.floor(3*input_size/5)))
+        self.fc3 = nn.Linear(int(np.floor(3*input_size/5)), int(np.floor(2*input_size/5)))
+        self.fc4 = nn.Linear(int(np.floor(2*input_size/5)), int(np.floor(input_size/5)))
+        self.fc5 = nn.Linear(int(np.floor(input_size/5)), output_size)
+        self.activation = nn.Tanh()
+        self.out_activation = nn.Softmax(dim=1)
 
     def forward(self, x):
         """
@@ -192,12 +55,39 @@ class RNN(nn.Module):
             Output tensor.
 
         """
-        # Initialize hidden state
-        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
+        out = self.fc1(x)
+        out = self.activation(out)
+        out = self.fc2(out)
+        out = self.activation(out)
+        out = self.fc3(out)
+        out = self.activation(out)
+        out = self.fc4(out)
+        out = self.activation(out)
+        out = self.fc5(out)
+        out = self.out_activation(out)
+        return out
 
-        # Forward propagate RNN
-        out, _ = self.rnn(x, h0)  # out: tensor of shape (batch_size, seq_length, hidden_size)
 
-        # Decode the hidden state of the last time step
-        out = self.fc(out[:, -1, :])
+class GradientBoostClassifier(nn.Module):
+    def __init__(self, input_size, output_size):
+        super(GradientBoostClassifier, self).__init__()
+        self.fc1 = nn.Linear(input_size, int(np.floor(4*input_size/5)))
+        self.fc2 = nn.Linear(int(np.floor(4*input_size/5)), int(np.floor(3*input_size/5)))
+        self.fc3 = nn.Linear(int(np.floor(3*input_size/5)), int(np.floor(2*input_size/5)))
+        self.fc4 = nn.Linear(int(np.floor(2*input_size/5)), int(np.floor(input_size/5)))
+        self.fc5 = nn.Linear(int(np.floor(input_size/5)), output_size)
+        self.activation = nn.Tanh()
+        self.out_activation = nn.Softmax(dim=1)
+
+    def forward(self, x):
+        out = self.fc1(x)
+        out = self.activation(out)
+        out = self.fc2(out)
+        out = self.activation(out)
+        out = self.fc3(out)
+        out = self.activation(out)
+        out = self.fc4(out)
+        out = self.activation(out)
+        out = self.fc5(out)
+        out = self.out_activation(out)
         return out

@@ -141,7 +141,7 @@ class StockDataset(Dataset):
 
     def __getitem__(self, idx):
         """Get the item at the given index."""
-        x = self.data[idx, :-2]
+        x = self.data[idx, :-4]
         y = self.data[idx, -2:]
 
         # Convert the data to tensors
@@ -185,14 +185,104 @@ class StockDataset(Dataset):
 
         return x_batch, y_batch
 
+
+class TUAPDataset(Dataset):
+    """Dataset for TUAP."""
+
+    def __init__(self, csv_path, sequence_length, train=True, normalize=True):
+        """Initialize the dataset.
+
+        Parameters
+        ----------
+        csv_path : str
+            Path to the csv file.
+        sequence_length : int
+            Length of the sequence.
+        train : bool, optional
+            Whether to use the train set or the test set, by default True
+        normalize : bool, optional
+            Whether to normalize the data, by default True
+        """
+        self.data = pd.read_csv(csv_path)
+        self.sequence_length = sequence_length
+        self.data['date'] = self.data['timestamp'].apply(lambda x: x.split(' ')[0])
+
+        # Get all the data for each day
+        self.data = self.data.groupby('date').apply(lambda x: x.values).values
+
+        # Drop datetime column
+        self.data = np.array([x[:, 1:-1] for x in self.data])
+
+        """
+        For each 5 iteration of sequence_length, find 
+        - Psuedo log return of the stock price
+        - Standard deviation
+        - Trend -> 1 if positive, 0 if negative
+        - Average of close price
+        - Close price of the last day
+        """
+        proc_data = []
+        for i in range(0, len(self.data), sequence_length):
+            if i + sequence_length < len(self.data):
+                current_window = self.data[i:i + sequence_length]
+                average = np.mean(current_window, dtype=np.float64)
+                standard_deviation = np.std(current_window, dtype=np.float64)
+                # Slope of the line of best fit gives the trend of the stock (Going up or down)
+                stock_trend,_ = np.polyfit(range(self.sequence_length), current_window.astype('float64'), 1)
+                minute= self.data[i:i + sequence_length,6]
+                hour= self.data[i:i + sequence_length,5]
+                close= self.data[i:i + sequence_length,3]
+                proc_data.append([average, standard_deviation, stock_trend, minute, hour, close])
+
+        
+
+
+    def np_pseudo_log(self, data):
+        """Get the pseudo log of the data.
+
+        Parameters
+        ----------
+        data : numpy array
+            Data to get the pseudo log of.
+
+        Returns
+        -------
+        numpy array
+            Pseudo log of the data.
+        """
+        plog = [0]
+        for i in range(len(data)):
+            if(i>0):
+                plog.append(np.log(data[i]/data[i-1])) 
+        return np.array(plog, dtype = np.float64)
+
+    
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        """Get the item at the given index."""
+        x = self.data[idx, :-4]
+        y = self.data[idx, -2:]
+
+        # Convert the data to tensors
+        x = torch.from_numpy(x).float()
+        y = torch.from_numpy(y).float()
+
+        return x, y
+        
+
 if __name__ == '__main__':
     # Create the datasetsymbol = 'AAPL'
     symbol='AAPL'
     # Load the data
-    dataset = StockDataset(csv_path=f'dataset/splitted_s&p500/{symbol}.csv', sequence_length=5, train=True, normalize=False)
-    # Get a random batch of training data
-    x, y = dataset.get_random_batch()
+    # dataset = StockDataset(csv_path=f'dataset/splitted_s&p500/{symbol}.csv', sequence_length=5, train=True, normalize=False)
+    # # Get a random batch of training data
+    # x, y = dataset.get_random_batch()
 
-    # Print the shapes of the data
-    print(x.shape)
-    print(y.shape)
+    # # Print the shapes of the data
+    # print(x.shape)
+    # print(y.shape)
+
+    dataset = TUAPDataset(csv_path=f'dataset/splitted_s&p500/{symbol}.csv', sequence_length=5, train=True, normalize=False)
+    

@@ -5,3 +5,5 @@ weights/
 *.pyc
 plots/
 *.h5
+runs/
+runs2/
