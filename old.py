@@ -34,7 +34,7 @@ hidden_size = 32
 num_layers = 2
 output_size = 2
 initial_epoch = 0
-num_epochs = 250
+num_epochs = 30
 learning_rate = 0.001
 sequence_length = 5
 symbols = ['GOOG', 'AMZN', 'BLK', 'IBM', 'AAPL']
@@ -46,6 +46,7 @@ writer = SummaryWriter(log_folder)
 
 for model_index, m in enumerate(models):
     model_name = m.__class__.__name__
+    print("Training model: ", model_name)
     best_accuracies = []
     for symbol in symbols:
         print("Training on symbol: ", symbol)
