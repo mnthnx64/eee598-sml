@@ -16,7 +16,7 @@ from torch.utils.data import Dataset, DataLoader
 class StockDataset(Dataset):
     """Data loader for the S&P 500 dataset."""
 
-    def __init__(self, csv_path, sequence_length=5, train=True, normalize=False):
+    def __init__(self, csv_path, sequence_length=5, train=True, normalize=False, offset=0):
         """
         Parameters
         ----------
@@ -29,7 +29,6 @@ class StockDataset(Dataset):
             for testing. The default is True.
         normalize : bool, optional
             If True, the data is normalized. The default is True.
-
         Returns
         -------
         None.
@@ -53,8 +52,8 @@ class StockDataset(Dataset):
 
         self.features = []
 
-        for row_multiple in range(len(self.data) // self.sequence_length):
-            row = row_multiple * self.sequence_length
+        for row_multiple in range(len(self.data) // self.sequence_length - 1):
+            row = row_multiple * self.sequence_length + offset
             current_window = self.data[row:row + self.sequence_length, 3]
             average = np.mean(current_window, dtype=np.float64)
             standard_deviation = np.std(current_window, dtype=np.float64)
@@ -119,12 +118,10 @@ class StockDataset(Dataset):
 
     def np_pseudo_log(self, data):
         """Get the pseudo log of the data.
-
         Parameters
         ----------
         data : numpy array
             Data to get the pseudo log of.
-
         Returns
         -------
         numpy array
@@ -194,5 +191,7 @@ if __name__ == '__main__':
     x, y = dataset.get_random_batch()
 
     # Print the shapes of the data
+    print(x[0])
+    print(y[0])
     print(x.shape)
     print(y.shape)

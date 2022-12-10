@@ -1,10 +1,8 @@
 """
 The file parses the Kaggle S&P 500 dataset and saves a csv file for each stock
 in the dataset.
-
 The dataset can be downloaded from:
 https://www.kaggle.com/nickdl/snp-500-intraday-data/home
-
 Technical Information
 Dates range from 2017-09-11 to 2018-02-16 and the time interval is 1 minute.
 This is a MultiIndex CSV file, to load in pandas use:
@@ -16,7 +14,7 @@ import pandas as pd
 import os
 
 # Path to the dataset
-path = 'dataset/data.csv'
+path = 'dataset/dataset.csv'
 path_to_save = 'dataset/splitted_s&p500'
 
 # Load the dataset

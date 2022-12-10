@@ -1,6 +1,6 @@
 import torch
-from dataloader import StockDataset
-from model import LSTM
+from utils.dataloader import StockDataset
+from utils.model import LSTM
 
 class EvaluateModel():
     def __init__(self, model, dataloader, criterion, device):
@@ -12,7 +12,6 @@ class EvaluateModel():
     def evaluate(self):
         """
         Evaluate and get the metrics of the model.
-
         Returns
         -------
         metrics : dict
@@ -56,14 +55,12 @@ class EvaluateModel():
     def calculate_tfpn(self, outputs, y_label):
         """
         Calculate the True positives, True negatives, False positives, and False negatives.
-
         Parameters
         ----------
         outputs : torch.Tensor
             The model outputs.
         y_label : torch.Tensor
             The labels.
-
         Returns
         -------
         tp : int
@@ -113,3 +110,4 @@ if __name__ == '__main__':
     test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=256, shuffle=False)
     criterion = torch.nn.MSELoss()
     evaluator = EvaluateModel(model, test_loader, criterion, device)
+    
