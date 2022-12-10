@@ -11,6 +11,20 @@ The code uses the data from the [S&P 500 Intraday](https://www.kaggle.com/nickdl
 ## Setup
 Run `setup.sh` to automatically setup the environment and download the data required for training.
 
+## Visualization
+The Tensorboard logs are available in the `runs` folder. To visualize the logs, run `tensorboard --logdir runs` and open the link in your browser.
+
+## Training
+To train the alpha models, 
+- Run `python old.py` for the original paper model.  
+- Run `python sklean_models.py` for the improved model.
+
+The model weights will be saved in the `weights` folder.
+
+## Crafting TUAPs
+To craft the TUAPs, run `python craft_tuap.py`. The TUAPs will be saved in the `weights` folder with a tag of `TUAP`.
+
+
 ## Citation
 ```
 @article{nehemya2021taking,

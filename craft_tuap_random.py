@@ -109,5 +109,8 @@ for model in model_list:
                 accuracy = correct / total
             writer.add_scalar(f'Acc/TUAP/test/{model}', accuracy, epoch)
 
+        # Save the TUAP model
+        torch.save(delta, f'weights/TUAP_{symbol}.pth')
+
 writer.flush()
 writer.close()
