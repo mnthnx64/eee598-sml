@@ -1,6 +1,6 @@
 import torch
 from utils.dataloader import StockDataset
-from utils.model import GradientBoostClassifier
+from utils.model import OldModelDNN
 
 class EvaluateModel():
     def __init__(self, model, dataloader, criterion, device):
@@ -109,7 +109,7 @@ if __name__ == '__main__':
     sequence_length = 5
     symbol = 'AAPL'
     checkpioint = torch.load(f'weights/{symbol}.pth')
-    model = GradientBoostClassifier(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, output_size=output_size).to(device)
+    model = OldModelDNN(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, output_size=output_size).to(device)
     model.load_state_dict(checkpioint['model_state_dict'])
     test_dataset = StockDataset(csv_path=f'dataset/splitted_s&p500/{symbol}.csv', sequence_length=sequence_length, train=False, normalize=False)
     test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=256, shuffle=False)

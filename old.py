@@ -11,9 +11,9 @@ from utils.dataloader import StockDataset
 from utils.evaluate_model import EvaluateModel
 import torch
 import tqdm
-from utils.model import OldModelDNN, GradientBoostClassifier
+from utils.model import OldModelDNN
 import os
-import yaml
+import json
 from torch.utils.tensorboard import SummaryWriter
 
 import warnings
@@ -38,10 +38,11 @@ num_epochs = 30
 learning_rate = 0.001
 sequence_length = 5
 symbols = ['GOOG', 'AMZN', 'BLK', 'IBM', 'AAPL']
-models = [GradientBoostClassifier(input_size, output_size), OldModelDNN(input_size, output_size)]
+test_list = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6']
+models = [OldModelDNN(input_size, output_size)]
 
 # Create the tensorboard writer
-log_folder = f"runs/" + datetime.now().strftime("%Y%m%d-%H%M%S")
+log_folder = f"runs/" + "old_model"
 writer = SummaryWriter(log_folder)
 
 for model_index, m in enumerate(models):
@@ -156,9 +157,37 @@ for model_index, m in enumerate(models):
                     best_accuracy = accuracy['test'][-1]
 
         best_accuracies.append(best_accuracy)
-    
+
     writer.add_scalars("Acc/best", {symbol: best_accuracy for symbol, best_accuracy in zip(symbols, best_accuracies)}, model_index)
     writer.add_scalars("Model/avg", {model.__class__.__name__: np.mean(best_accuracy) }, model_index)
+
+accuracies = []
+for i, test_set in enumerate(test_list):
+    # Run evaluation of different test sets
+    acc = 0
+    test_sets = 6
+    for symbol in symbols:
+        test_dataset = StockDataset(csv_path=f'dataset/splitted_s&p500/{symbol}.csv', sequence_length=sequence_length, train=False, normalize=False, offset=i)
+        test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=256, shuffle=False)
+        acc += EvaluateModel(model, test_loader, criterion, device).evaluate()['accuracy']
+    accuracies.append(acc/len(symbols))
+
+# Plot the losses
+plt.figure(1)
+plt.plot(test_list, accuracies,  label='Old Model', c="b", lw=2)
+plt.scatter(test_list, accuracies, c="b", lw=2)
+plt.title('Old Model Accuracy for Different testing sets')
+plt.xlabel('Testing set')
+plt.ylabel('Accuracy')
+plt.legend()
+plt.savefig(f'plots/Old_eval.png')
+
+# Save the accuracies to tensorboard
+with open('plots/Old_eval.json', 'w') as f:
+    json.dump(accuracies, f)
+
+
+writer.add_figure("Old_eval", plt.gcf())
 
 writer.flush()
 writer.close()

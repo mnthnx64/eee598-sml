@@ -16,7 +16,7 @@ from torch.utils.data import Dataset, DataLoader
 class StockDataset(Dataset):
     """Data loader for the S&P 500 dataset."""
 
-    def __init__(self, csv_path, sequence_length=5, train=True, normalize=False):
+    def __init__(self, csv_path, sequence_length=5, train=True, normalize=False, offset=0):
         """
         Parameters
         ----------
@@ -53,8 +53,8 @@ class StockDataset(Dataset):
 
         self.features = []
 
-        for row_multiple in range(len(self.data) // self.sequence_length):
-            row = row_multiple * self.sequence_length
+        for row_multiple in range(len(self.data) // self.sequence_length - 1):
+            row = row_multiple * self.sequence_length + offset
             current_window = self.data[row:row + self.sequence_length, 3]
             average = np.mean(current_window, dtype=np.float64)
             standard_deviation = np.std(current_window, dtype=np.float64)
@@ -222,12 +222,12 @@ class TUAPDataset(Dataset):
         self.data = self.data[['open', 'high', 'low', 'close', 'volume']].values
         idx = int(len(self.data) * 0.8)
         # Convert idx to nearest 10
-        idx = idx - (idx % 10)
-        last_idx = len(self.data) - (len(self.data) % 10)
+        idx = idx - (idx % 35)
+        last_idx = len(self.data) - (len(self.data) % 35)
         if train:
             self.data = self.data[:idx]
         else:
-            self.data = self.data[idx:last_idx]
+            self.data = self.data[last_idx-70:last_idx]
 
     
     def __len__(self):
@@ -306,13 +306,11 @@ if __name__ == '__main__':
     # Create the datasetsymbol = 'AAPL'
     symbol='AAPL'
     # Load the data
-    # dataset = StockDataset(csv_path=f'dataset/splitted_s&p500/{symbol}.csv', sequence_length=5, train=True, normalize=False)
-    # # Get a random batch of training data
-    # x, y = dataset.get_random_batch()
+    dataset = StockDataset(csv_path=f'dataset/splitted_s&p500/{symbol}.csv', sequence_length=5, train=True, normalize=False)
+    # Get a random batch of training data
+    x, y = dataset.get_random_batch()
 
-    # # Print the shapes of the data
-    # print(x.shape)
-    # print(y.shape)
-
-    dataset = TUAPDataset(csv_path=f'dataset/splitted_s&p500/{symbol}.csv', sequence_length=5, train=True, normalize=False)
+    # Print the shapes of the data
+    print(x.shape)
+    print(y.shape)
     
